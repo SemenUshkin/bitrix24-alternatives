@@ -22,6 +22,41 @@ button { padding: 12px 38px; margin-top: 7px; font-size: 15px; background: linea
 @keyframes spin {100% { transform: rotate(360deg); }}
 </style>
 </head>
+    <?php
+// Настройки подключения
+$host = '80157082dc6d03050c3e9fbb.twc1.net';
+$db   = 'promkontakt';
+$user = 'gen_user';
+$pass = '.mx7v*^0qoMZ=A';
+$charset = 'utf8mb4';
+
+// Подключение к БД
+$dsn = "mysql:host=$host;dbname=$db;charset=$charset";
+$options = [
+    PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
+    PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+];
+
+try {
+     $pdo = new PDO($dsn, $user, $pass, $options);
+} catch (\PDOException $e) {
+     die('<b>Ошибка подключения к базе:</b> ' . $e->getMessage());
+}
+
+// Запрос к таблице (вывод товаров)
+$stmt = $pdo->query('SELECT our_product FROM products LIMIT 50');
+
+// Вывод HTML
+echo "<h2>Список товаров из базы данных</h2>";
+echo "<table border='1' cellpadding='8'><tr><th>Товар</th></tr>";
+while ($row = $stmt->fetch()) {
+    echo "<tr><td>" . htmlspecialchars($row['our_product']) . "</td></tr>";
+}
+echo "</table>";
+?>
+
+
+    
 <body>
 <div class="container">
     <div class="form-title">Поиск товара (Bitrix24)</div>
@@ -108,6 +143,8 @@ async function showTopProducts() {
    }
 }
 showTopProducts();
+
+    
 </script>
 </body>
 </html>
