@@ -2,47 +2,112 @@
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
-<title>Список товаров</title>
+<title>Поиск товара (Bitrix24)</title>
 <style>
 body { background: #F5F7FA; font-family: 'Segoe UI', 'Arial', sans-serif; }
 .container { max-width: 700px; margin: 60px auto; background: #fff; border-radius: 12px; box-shadow: 0 8px 32px rgba(46,103,141,0.11); padding: 40px 32px 30px 32px; }
-h2 { font-size: 24px; color: #375985; }
-table { border-collapse: collapse; width: 100%; margin-top: 24px; }
-th, td { border: 1px solid #C8DFEA; padding: 11px 14px; font-size: 15px; text-align: left; }
-th { background: #EAF6FF; color: #1976d2; }
-tr:nth-child(even) { background: #F6FBFF; }
+.form-title { font-size: 24px; color: #375985; }
+.hint, .message-error, .message-info { border-radius: 7px; font-size: 13px; margin-bottom: 14px; padding:10px 15px;}
+.hint { background: #EAF6FF; color: #1976d2; border-left: 4px solid #2fc6f6;}
+.input-group { margin-bottom: 18px;}
+input[type=text] { width: 100%; padding: 13px; font-size: 15px; border: 1px solid #C8DFEA; border-radius: 7px; box-sizing: border-box; }
+button { padding: 12px 38px; margin-top: 7px; font-size: 15px; background: linear-gradient(90deg,#47d1fd 40%,#2fc6f6 100%); color: #fff; border: none; border-radius: 7px; font-weight: 600; cursor: pointer;}
+.result-block { margin-top: 28px; padding: 21px 17px; background: #F6FBFF; border-left: 4px solid #2fc6f6; border-radius: 10px;}
+.result-title { font-size: 17px; color: #437fd9; margin-bottom: 15px;}
+.result-item { padding: 13px 0 13px 0; margin-bottom: 8px; background: #fff; border: 1px solid #E6EDF7; border-radius: 8px; font-size: 14px;}
+.result-alt { color: #C69220; font-weight: 600;}
+.message-error { background: #fde8e4; color: #c82333; margin-top:6px;}
+.message-info { background: #d1ecf1; color: #1976d2;}
+.loader { display: inline-block; width: 18px; height: 18px; border: 3px solid #2fc6f6; border-bottom-color: #fff; border-radius: 50%; animation: spin 1s linear infinite; margin-right: 10px;}
+@keyframes spin {100% { transform: rotate(360deg); }}
 </style>
 </head>
 <body>
 <div class="container">
-<?php
-$host = '80157082dc6d03050c3e9fbb.twc1.net';
-$db   = 'promkontakt';
-$user = 'gen_user';
-$pass = '.mx7v*^0qoMZ=A';
-$charset = 'utf8mb4';
-
-$dsn = "mysql:host=$host;dbname=$db;charset=$charset";
-$options = [
-    PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
-    PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-];
-
-try {
-     $pdo = new PDO($dsn, $user, $pass, $options);
-} catch (\PDOException $e) {
-     die('<b>Ошибка подключения к базе:</b> ' . $e->getMessage());
-}
-
-$stmt = $pdo->query('SELECT our_product FROM products LIMIT 50');
-
-echo "<h2>Список товаров из базы данных</h2>";
-echo "<table><tr><th>Товар</th></tr>";
-while ($row = $stmt->fetch()) {
-    echo "<tr><td>" . htmlspecialchars($row['our_product']) . "</td></tr>";
-}
-echo "</table>";
-?>
+    <div class="form-title">Поиск товара (Bitrix24)</div>
+    <div class="hint">Вводите любой товар — можно с ошибками, система подберёт альтернативы.<br>
+        Например: рукав монтажный, шланг, паронит
+    </div>
+    <div class="input-group">
+        <input type="text" id="productQuery" placeholder="Введите название товара...">
+        <button onclick="searchProduct()" id="searchBtn">Найти</button>
+    </div>
+    <div id="messageBox"></div>
+    <div id="results"></div>
+    <div id="topProductsSection"></div>
 </div>
+<script>
+const API_HOST = 'http://85.92.111.84:3000'; // Укажите свой IP сервера
+
+function showMessage(text, type = "info") {
+    const box = document.getElementById('messageBox');
+    box.innerHTML = `<div class="message-${type}">${type === "error" ? "❌" : "ℹ️"} ${text}</div>`;
+    setTimeout(() => { box.innerHTML = ""; }, 4000);
+}
+
+async function searchProduct() {
+    const q = document.getElementById('productQuery').value.trim();
+    const box = document.getElementById('results');
+    const btn = document.getElementById('searchBtn');
+    box.innerHTML = "";
+    if (!q) { showMessage("Введите название для поиска", "error"); return; }
+    showMessage("Поиск товара...", "info");
+    btn.disabled = true;
+    btn.innerHTML = '<span class="loader"></span>Ищем...';
+    try {
+        const res = await fetch(`${API_HOST}/api/search?query=${encodeURIComponent(q)}`);
+        const data = await res.json();
+        btn.disabled = false; btn.textContent = "Найти";
+        if (!data) {
+            box.innerHTML = `<div class="result-block"><div class="result-title">Результаты поиска</div>
+            <div class="message-error">Ничего не найдено по вашему запросу.<br>Попробуйте изменить формулировку или уточнить товар.</div></div>`;
+            return;
+        }
+        let html = `<div class="result-block"><div class="result-title">Результаты поиска для &quot;<b>${q}</b>&quot;:</div>
+            <div class="result-item"><b>Основной товар:</b> ${data.ourProduct}</div>`;
+        if (data.alternatives.length > 0) {
+            html += `<div class="result-title">Альтернативы:</div>`;
+            data.alternatives.forEach((alt, idx) => {
+                html += `<div class="result-item result-alt">Вариант ${idx+1}: ${alt}</div>`;
+            });
+        } else {
+            html += `<div class="message-info">Альтернативных товаров не найдено</div>`;
+        }
+        html += `</div>`;
+        box.innerHTML = html;
+    } catch (e) {
+        box.innerHTML = "";
+        showMessage("Ошибка запроса к серверу. Проверьте соединение.", "error");
+        btn.disabled = false; btn.textContent = "Найти";
+    }
+}
+
+document.getElementById('productQuery').addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') searchProduct();
+});
+
+// Топ-20 товаров
+async function showTopProducts() {
+   const box = document.getElementById('topProductsSection');
+   box.innerHTML = '<div class="hint">Загрузка популярных товаров...</div>';
+   try {
+       const res = await fetch(`${API_HOST}/api/top-products`);
+       const data = await res.json();
+       if (!data.products || data.products.length === 0) {
+           box.innerHTML = '<div class="hint">В базе пока нет товаров.</div>';
+           return;
+       }
+       let html = `<div class="result-block"><div class="result-title">Топ-20 товаров в базе:</div><ul style="padding-left: 25px;">`;
+       data.products.forEach((p, idx) => {
+           html += `<li class="result-item">${p}</li>`;
+       });
+       html += "</ul></div>";
+       box.innerHTML = html;
+   } catch (e) {
+       box.innerHTML = '<div class="hint">Ошибка загрузки топ-20 товаров из базы.</div>';
+   }
+}
+showTopProducts();
+</script>
 </body>
 </html>
