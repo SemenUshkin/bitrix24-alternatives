@@ -10,14 +10,7 @@ const port = 3000;
 app.use(cors());
 app.use(express.json());
 
-mysql.createConnection(dbConfig)
-  .then(conn => {
-    console.log('Успешное подключение к MySQL!');
-    return conn.end();
-  })
-  .catch(err => {
-    console.error('Ошибка подключения к MySQL:', err.message);
-  });
+
 
 const dbConfig = {
   host: process.env.DB_HOST,
@@ -27,6 +20,14 @@ const dbConfig = {
   database: process.env.DB_NAME,
   ssl: { ca: fs.readFileSync(process.env.DB_SSL_CA) }
 };
+mysql.createConnection(dbConfig)
+  .then(conn => {
+    console.log('Успешное подключение к MySQL!');
+    return conn.end();
+  })
+  .catch(err => {
+    console.error('Ошибка подключения к MySQL:', err.message);
+  });
 
 // Топ-20 товаров
 app.get('/api/top-products', async (req, res) => {
