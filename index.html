@@ -2,43 +2,197 @@
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
-<title>Поиск товара и альтернатив</title>
+<title>Поиск товара — Bitrix24 стиль</title>
 <style>
-body { font-family: Arial, sans-serif; padding:30px; }
-input[type=text] { width: 70%; font-size:16px; padding:8px; }
-button { padding:10px 18px; }
-.product, .alt { margin:16px 0; padding:8px; border:1px solid #eee; border-radius:5px; }
-.alt { background:#f6f6fe;}
+body {
+    background: #F5F7FA;
+    font-family: 'Segoe UI', 'Arial', sans-serif;
+    margin: 0;
+    padding: 50px;
+}
+.container {
+    max-width: 700px;
+    margin: 0 auto;
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 8px 32px rgba(46,103,141,0.11);
+    padding: 40px 32px 30px 32px;
+}
+.form-title {
+    font-size: 24px;
+    margin-bottom: 7px;
+    color: #375985;
+}
+.hint {
+    background: #EAF6FF;
+    color: #1976d2;
+    border-left: 4px solid #2fc6f6;
+    padding: 10px 15px;
+    border-radius: 7px;
+    font-size: 13px;
+    margin-bottom: 14px;
+}
+.input-group {
+    margin-bottom: 18px;
+}
+input[type=text] {
+    width: 100%;
+    padding: 13px;
+    font-size: 15px;
+    border: 1px solid #C8DFEA;
+    border-radius: 7px;
+    box-sizing: border-box;
+    transition: border-color 0.2s;
+}
+input[type=text]:focus {
+    border: 1.5px solid #2fc6f6;
+    outline: none;
+}
+button {
+    padding: 12px 38px;
+    margin-top: 7px;
+    font-size: 15px;
+    background: linear-gradient(90deg,#47d1fd 40%,#2fc6f6 100%);
+    color: #fff;
+    border: none;
+    border-radius: 7px;
+    font-weight: 600;
+    box-shadow: 0 2px 8px rgba(47,198,246,0.07);
+    cursor: pointer;
+    transition: background 0.2s;
+}
+button:hover { background: #2fc6f6; }
+.result-block {
+    margin-top: 28px;
+    padding: 21px 17px;
+    background: #F6FBFF;
+    border-left: 4px solid #2fc6f6;
+    border-radius: 10px;
+}
+.result-title {
+    font-size: 17px;
+    color: #437fd9;
+    margin-bottom: 15px;
+}
+.result-item {
+    padding: 13px 0 13px 0;
+    margin-bottom: 8px;
+    background: #fff;
+    border: 1px solid #E6EDF7;
+    border-radius: 8px;
+    font-size: 14px;
+}
+.result-alt {
+    color: #C69220;
+    font-weight: 600;
+}
+
+.message-info {
+    background: #d1ecf1;
+    padding: 12px;
+    border-radius: 7px;
+    color: #1976d2;
+    font-size: 14px;
+    margin-top: 18px;
+    margin-bottom: 4px;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+}
+.message-error {
+    background: #fde8e4;
+    padding: 12px;
+    border-radius: 7px;
+    color: #c82333;
+    font-size: 14px;
+    margin-bottom: 4px;
+    display: flex;
+    gap: 7px;
+}
+.loader {
+    display: inline-block;
+    width: 18px;
+    height: 18px;
+    border: 3px solid #2fc6f6;
+    border-bottom-color: #fff;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin-right: 10px;
+}
+@keyframes spin {
+    100% { transform: rotate(360deg); }
+}
 </style>
 </head>
 <body>
-<h2>Поиск товара33334</h2>
-<input type="text" id="productQuery" placeholder="Введите название товара...">
-<button onclick="searchProduct()">Найти</button>
-<div id="results"></div>
+<div class="container">
+    <div class="form-title">Поиск товара (Bitrix24)</div>
+    <div class="hint">Вводите любой товар — можно с ошибками, система подберёт подходящие альтернативы.<br>
+        Например: <span style="color:#1565C0;">рукав монтажный, шланг, паронит</span>
+    </div>
+    <div class="input-group">
+        <input type="text" id="productQuery" placeholder="Введите название товара...">
+        <button onclick="searchProduct()" id="searchBtn">Найти</button>
+    </div>
+    <div id="messageBox"></div>
+    <div id="results"></div>
+</div>
 
 <script>
-async function searchProduct() {
-  const q = document.getElementById('productQuery').value.trim();
-  if (!q) return;
-  const res = await fetch(`http://localhost:3000/api/search?query=${encodeURIComponent(q)}`);
-  const data = await res.json();
-  const box = document.getElementById('results');
-  box.innerHTML = '';
-  if (!data) {
-    box.innerHTML = '<p>Товар не найден</p>';
-    return;
-  }
-  box.innerHTML = `<div class="product"><b>Основной товар: </b>${data.ourProduct}</div>`;
-  if (data.alternatives.length > 0) {
-    box.innerHTML += '<div><b>Альтернативы:</b></div>';
-    data.alternatives.forEach(a =>
-      box.innerHTML += `<div class="alt">${a}</div>`
-    );
-  } else {
-    box.innerHTML += '<div>Альтернативы не найдены</div>';
-  }
+function showMessage(text, type = "info") {
+    const box = document.getElementById('messageBox');
+    box.innerHTML = `<div class="message-${type}">${type == "error" ? "❌" : "ℹ️"} ${text}</div>`;
+    setTimeout(() => { box.innerHTML = ""; }, 4000);
 }
+
+async function searchProduct() {
+    const q = document.getElementById('productQuery').value.trim();
+    const box = document.getElementById('results');
+    const btn = document.getElementById('searchBtn');
+    box.innerHTML = "";
+    if (!q) {
+        showMessage("Введите название для поиска", "error");
+        return;
+    }
+    showMessage("Поиск товара...", "info");
+    btn.disabled = true;
+    btn.innerHTML = '<span class="loader"></span>Ищем...';
+    try {
+        // Здесь укажите свой API сервер:
+        const res = await fetch(`http://localhost:3000/api/search?query=${encodeURIComponent(q)}`);
+        const data = await res.json();
+        btn.disabled = false;
+        btn.textContent = "Найти";
+
+        if (!data) {
+            box.innerHTML = `<div class="result-block"><div class="result-title">Результаты поиска</div>
+            <div class="message-error">Ничего не найдено по вашему запросу.<br>Попробуйте изменить формулировку или уточнить товар.</div></div>`;
+            return;
+        }
+        let html = `<div class="result-block"><div class="result-title">Результаты поиска для &quot;<b>${q}</b>&quot;:</div>`;
+        html += `<div class="result-item"><b>Основной товар:</b> ${data.ourProduct}</div>`;
+        if (data.alternatives.length > 0) {
+            html += `<div class="result-title">Альтернативы:</div>`;
+            data.alternatives.forEach((alt, idx) => {
+                html += `<div class="result-item result-alt">Вариант ${idx+1}: ${alt}</div>`;
+            });
+        } else {
+            html += `<div class="message-info">Альтернативных товаров не найдено</div>`;
+        }
+        html += `</div>`;
+        box.innerHTML = html;
+    } catch (e) {
+        box.innerHTML = "";
+        showMessage("Ошибка запроса к серверу. Проверьте соединение.", "error");
+        btn.disabled = false;
+        btn.textContent = "Найти";
+    }
+}
+
+// Обработка Enter
+document.getElementById('productQuery').addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') searchProduct();
+});
 </script>
 </body>
 </html>
