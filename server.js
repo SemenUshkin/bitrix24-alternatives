@@ -69,3 +69,21 @@ app.post('/api/bitrix/add-to-deal', async (req, res) => {
 });
 
 app.listen(port, () => console.log('API server running on port', port));
+
+
+// Топ-20 товаров
+app.get('/api/top-products', async (req, res) => {
+  let conn;
+  try {
+    conn = await mysql.createConnection(dbConfig);
+    const [rows] = await conn.execute(
+      "SELECT our_product FROM products ORDER BY our_product ASC LIMIT 20"
+    );
+    res.json({ products: rows.map(r => r.our_product) });
+  } catch (err) {
+    res.status(500).json({ error: 'Database error', details: err });
+  } finally {
+    if (conn) await conn.end();
+  }
+});
+
