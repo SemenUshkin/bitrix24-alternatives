@@ -86,7 +86,6 @@ button:hover { background: #2fc6f6; }
     color: #C69220;
     font-weight: 600;
 }
-
 .message-info {
     background: #d1ecf1;
     padding: 12px;
@@ -136,6 +135,7 @@ button:hover { background: #2fc6f6; }
     </div>
     <div id="messageBox"></div>
     <div id="results"></div>
+    <div id="topProductsSection"></div>
 </div>
 
 <script>
@@ -158,12 +158,10 @@ async function searchProduct() {
     btn.disabled = true;
     btn.innerHTML = '<span class="loader"></span>Ищем...';
     try {
-        // Здесь укажите свой API сервер:
         const res = await fetch(`http://localhost:3000/api/search?query=${encodeURIComponent(q)}`);
         const data = await res.json();
         btn.disabled = false;
         btn.textContent = "Найти";
-
         if (!data) {
             box.innerHTML = `<div class="result-block"><div class="result-title">Результаты поиска</div>
             <div class="message-error">Ничего не найдено по вашему запросу.<br>Попробуйте изменить формулировку или уточнить товар.</div></div>`;
@@ -188,38 +186,34 @@ async function searchProduct() {
         btn.textContent = "Найти";
     }
 }
-<div id="topProductsSection"></div>
-async function showTopProducts() {
-    const box = document.getElementById('topProductsSection');
-    box.innerHTML = '<div class="hint">Загрузка популярных товаров...</div>';
-    try {
-        // Укажите свой API сервер
-        const res = await fetch('http://localhost:3000/api/top-products');
-        const data = await res.json();
-        if (!data.products || data.products.length === 0) {
-            box.innerHTML = '<div class="hint">В базе пока нет товаров.</div>';
-            return;
-        }
-        let html = `<div class="result-block"><div class="result-title">Топ-20 товаров в базе:</div><ul style="padding-left: 25px;">`;
-        data.products.forEach((p, idx) => {
-            html += `<li class="result-item">${p}</li>`;
-        });
-        html += "</ul></div>";
-        box.innerHTML = html;
-    } catch (e) {
-        box.innerHTML = '<div class="hint">Ошибка загрузки топ-20 товаров из базы.</div>';
-    }
-}
 
-// Загружаем топ-20 после загрузки страницы
-showTopProducts();
-
-
-    
 // Обработка Enter
 document.getElementById('productQuery').addEventListener('keydown', function(e) {
     if (e.key === 'Enter') searchProduct();
 });
+
+// Топ-20 товаров
+async function showTopProducts() {
+   const box = document.getElementById('topProductsSection');
+   box.innerHTML = '<div class="hint">Загрузка популярных товаров...</div>';
+   try {
+       const res = await fetch('http://localhost:3000/api/top-products');
+       const data = await res.json();
+       if (!data.products || data.products.length === 0) {
+           box.innerHTML = '<div class="hint">В базе пока нет товаров.</div>';
+           return;
+       }
+       let html = `<div class="result-block"><div class="result-title">Топ-20 товаров в базе:</div><ul style="padding-left: 25px;">`;
+       data.products.forEach((p, idx) => {
+           html += `<li class="result-item">${p}</li>`;
+       });
+       html += "</ul></div>";
+       box.innerHTML = html;
+   } catch (e) {
+       box.innerHTML = '<div class="hint">Ошибка загрузки топ-20 товаров из базы.</div>';
+   }
+}
+showTopProducts();
 </script>
 </body>
 </html>
