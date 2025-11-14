@@ -16,36 +16,36 @@ const dbConfig = {
   user: process.env.DB_USER,
   password: process.env.DB_PASSWORD,
   database: process.env.DB_NAME,
-  ssl: {
-    ca: fs.readFileSync(process.env.DB_SSL_CA)
-  }
+  ssl: { ca: fs.readFileSync(process.env.DB_SSL_CA) }
 };
 
-// Поиск товара и альтернатив по user query
+// Топ-20 товаров
+app.get('/api/top-products', async (req, res) => {
+  let conn;
+  try {
+    conn = await mysql.createConnection(dbConfig);
+    const [rows] = await conn.execute("SELECT our_product FROM products ORDER BY our_product ASC LIMIT 20");
+    res.json({ products: rows.map(r => r.our_product) });
+  } catch (err) {
+    res.status(500).json({ error: 'Database error', details: err.message });
+  } finally {
+    if (conn) await conn.end();
+  }
+});
+
+// Поиск товара + альтернативы
 app.get('/api/search', async (req, res) => {
   const { query } = req.query;
   if (!query) return res.status(400).json({ error: 'Query is required' });
   let conn;
   try {
     conn = await mysql.createConnection(dbConfig);
-    // Поиск основного товара
     const [productRows] = await conn.execute(
       "SELECT * FROM products WHERE our_product LIKE ? OR client_query LIKE ? LIMIT 1",
       [`%${query}%`, `%${query}%`]
     );
     let product = productRows[0];
-    // Если не найдено, пробуем найти альтернативу
-    if (!product) {
-      const [altRows] = await conn.execute(
-        "SELECT * FROM products WHERE our_product LIKE ? LIMIT 1",
-        [`%${query}%`]
-      );
-      product = altRows[0];
-    }
-    if (!product) {
-      return res.json(null);
-    }
-    // Альтернативы — другие продукты где совпадает client_query
+    if (!product) return res.json(null);
     const [alternativesRows] = await conn.execute(
       "SELECT our_product FROM products WHERE client_query=? AND id!=?",
       [product.client_query, product.id]
@@ -56,34 +56,10 @@ app.get('/api/search', async (req, res) => {
       alternatives: alternativesRows.map(r => r.our_product)
     });
   } catch (err) {
-    res.status(500).json({ error: 'Database error', details: err });
+    res.status(500).json({ error: 'Database error', details: err.message });
   } finally {
     if (conn) await conn.end();
   }
 });
 
-// пример ручки для добавления в сделку через Bitrix24 API (требует access_token!)
-app.post('/api/bitrix/add-to-deal', async (req, res) => {
-  // TODO: реализовать через BX24.callMethod или fetch, требуются access_token и параметры сделки/продукта
-  res.json({ ok: true, message: 'Demo: добавление интеграции с Bitrix24' });
-});
-
-app.listen(port, () => console.log('API server running on port', port));
-
-
-// Топ-20 товаров
-app.get('/api/top-products', async (req, res) => {
-  let conn;
-  try {
-    conn = await mysql.createConnection(dbConfig);
-    const [rows] = await conn.execute(
-      "SELECT our_product FROM products ORDER BY our_product ASC LIMIT 20"
-    );
-    res.json({ products: rows.map(r => r.our_product) });
-  } catch (err) {
-    res.status(500).json({ error: 'Database error', details: err });
-  } finally {
-    if (conn) await conn.end();
-  }
-});
-
+app.listen(port, '0.0.0.0', () => console.log('API server running on port', port));
