@@ -10,6 +10,15 @@ const port = 3000;
 app.use(cors());
 app.use(express.json());
 
+mysql.createConnection(dbConfig)
+  .then(conn => {
+    console.log('Успешное подключение к MySQL!');
+    return conn.end();
+  })
+  .catch(err => {
+    console.error('Ошибка подключения к MySQL:', err.message);
+  });
+
 const dbConfig = {
   host: process.env.DB_HOST,
   port: process.env.DB_PORT,
