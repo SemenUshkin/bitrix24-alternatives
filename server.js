@@ -5,7 +5,7 @@ const mysql = require('mysql2/promise');
 const fs = require('fs');
 
 const app = express();
-const port = 80;
+const port = 3000;
 
 app.use(cors());
 app.use(express.json());
